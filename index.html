@@ -1929,11 +1929,16 @@ footer{
     <div class="sanct-grid">
       <article class="sanct-card reveal d1">
         <!-- IMAGE-SLOT: sauna — interior of sauna / steam area. Recommended: 600×750px. -->
-        <div class="img-slot" data-image-slot="sauna">
-          <div class="img-label">
-            <span class="lbl-eye">interior</span>
-            <span class="lbl-name" data-i18n="img.sauna">finska sauna · turska parna kupelj</span>
-          </div>
+        <div class="img-slot has-image">
+          <picture>
+            <source type="image/webp"
+                    srcset="images/sanctuary-sauna-1200.webp 1200w,
+                            images/sanctuary-sauna-800.webp 800w"
+                    sizes="(min-width: 760px) 50vw, 90vw">
+            <img src="images/sanctuary-sauna-800.webp"
+                 alt="Finnish sauna and relaxation area at Senses Spa, Opatija"
+                 loading="lazy" decoding="async">
+          </picture>
         </div>
         <div>
           <div class="feature" data-i18n="sanct.feat1">Toplina</div>
@@ -1948,11 +1953,16 @@ footer{
 
       <article class="sanct-card reveal d2">
         <!-- IMAGE-SLOT: pool — outdoor heated pool with sea view. Recommended: 600×750px. -->
-        <div class="img-slot" data-image-slot="pool">
-          <div class="img-label">
-            <span class="lbl-eye">view</span>
-            <span class="lbl-name" data-i18n="img.pool">grijani bazen · pogled na Kvarner</span>
-          </div>
+        <div class="img-slot has-image">
+          <picture>
+            <source type="image/webp"
+                    srcset="images/sanctuary-pool-960.webp 960w,
+                            images/sanctuary-pool-800.webp 800w"
+                    sizes="(min-width: 760px) 50vw, 90vw">
+            <img src="images/sanctuary-pool-800.webp"
+                 alt="Outdoor heated pool at Senses Spa, Hotel Navis, Opatija"
+                 loading="lazy" decoding="async">
+          </picture>
         </div>
         <div>
           <div class="feature" data-i18n="sanct.feat2">More</div>
