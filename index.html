@@ -1334,6 +1334,55 @@ footer{
   ]
 }
 </script>
+<style>
+/* ===== Date picker (calendar) ===== */
+.date-wrap{position:relative}
+.date-display{cursor:pointer}
+.date-display:disabled{cursor:not-allowed;color:var(--mist);opacity:.7}
+.date-wrap::after{
+  content:"";position:absolute;right:0;top:.95rem;
+  width:7px;height:7px;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  transform:rotate(45deg);pointer-events:none;
+}
+.cal-pop{
+  position:absolute;top:calc(100% + 12px);left:0;z-index:60;
+  width:304px;max-width:86vw;
+  background:var(--paper);border:1px solid var(--line);
+  box-shadow:var(--shadow);border-radius:4px;padding:1.05rem 1.1rem 1.2rem;
+  opacity:0;visibility:hidden;transform:translateY(-6px);
+  transition:opacity .26s var(--ease),transform .26s var(--ease),visibility .26s;
+}
+.cal-pop.is-open{opacity:1;visibility:visible;transform:translateY(0)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+.cal-title{font-family:var(--f-label);font-size:.92rem;letter-spacing:.05em;color:var(--ink)}
+.cal-nav{
+  width:30px;height:30px;border:1px solid var(--line);background:transparent;border-radius:50%;
+  color:var(--ink-soft);font-size:1.05rem;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.25s var(--ease);
+}
+.cal-nav:hover:not(:disabled){border-color:var(--bronze);color:var(--bronze)}
+.cal-nav:disabled{opacity:.22;cursor:default}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:.4rem}
+.cal-dow span{
+  text-align:center;font-family:var(--f-label);font-size:.58rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--bronze);padding:.2rem 0;
+}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;transition:opacity .2s var(--ease)}
+.cal-grid.cal-loading{opacity:.4;pointer-events:none}
+.cal-day{
+  aspect-ratio:1/1;border:0;background:transparent;border-radius:50%;
+  font-family:var(--f-body);font-size:.85rem;color:var(--ink);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.16s var(--ease);
+}
+.cal-day:hover:not(.is-disabled):not(.is-empty):not(.is-selected){background:var(--cream)}
+.cal-day.is-disabled{color:var(--mist);cursor:default;pointer-events:none}
+.cal-day.is-empty{pointer-events:none}
+.cal-day.is-selected{background:var(--evergreen);color:var(--paper)}
+@media (max-width:520px){
+  .cal-pop{left:50%;transform:translate(-50%,-6px)}
+  .cal-pop.is-open{transform:translate(-50%,0)}
+}
+</style>
 </head>
 <body>
 
@@ -2042,26 +2091,26 @@ footer{
 
           <div class="field-grid cols-2">
             <div class="field">
-              <label for="f-date" data-i18n="f.date">Željeni datum</label>
-              <input type="date" id="f-date" name="date" required />
+              <label for="f-date-display" data-i18n="f.date">Željeni datum</label>
+              <div class="date-wrap">
+                <input type="text" id="f-date-display" class="date-display" readonly disabled placeholder="—" autocomplete="off" />
+                <input type="hidden" id="f-date" name="date" required />
+                <div class="cal-pop" id="calPop">
+                  <div class="cal-head">
+                    <button type="button" class="cal-nav" id="calPrev" aria-label="prethodni mjesec">‹</button>
+                    <div class="cal-title" id="calTitle"></div>
+                    <button type="button" class="cal-nav" id="calNext" aria-label="sljedeći mjesec">›</button>
+                  </div>
+                  <div class="cal-dow" id="calDow"></div>
+                  <div class="cal-grid" id="calGrid"></div>
+                </div>
+              </div>
             </div>
             <div class="field">
               <label for="f-time" data-i18n="f.time">Vrijeme</label>
               <div class="select-wrap">
-                <select id="f-time" name="time" required>
-                  <option value="" data-i18n="f.choose">— odaberite —</option>
-                  <option>08:00</option><option>08:30</option>
-                  <option>09:00</option><option>09:30</option>
-                  <option>10:00</option><option>10:30</option>
-                  <option>11:00</option><option>11:30</option>
-                  <option>12:00</option><option>12:30</option>
-                  <option>13:00</option><option>13:30</option>
-                  <option>14:00</option><option>14:30</option>
-                  <option>15:00</option><option>15:30</option>
-                  <option>16:00</option><option>16:30</option>
-                  <option>17:00</option><option>17:30</option>
-                  <option>18:00</option><option>18:30</option>
-                  <option>19:00</option>
+                <select id="f-time" name="time" required disabled>
+                  <option value="">—</option>
                 </select>
               </div>
             </div>
@@ -2340,7 +2389,7 @@ const I18N = {
     "book.phone":"Telefon",
     "book.email":"E-pošta",
     "book.thanks":"Hvala vam. Vaš zahtjev je zabilježen.",
-    "book.thanks_sub":"Otvorit će se vaš e-mail klijent s pripremljenom porukom. Pošaljite ju i javit ćemo vam se s potvrdom.",
+    "book.thanks_sub":"Zaprimili smo vaš zahtjev. Javit ćemo vam se s potvrdom u najkraćem roku.",
     "f.treatment":"Tretman",
     "f.choose":"— odaberite —",
     "f.date":"Željeni datum",
@@ -2506,7 +2555,7 @@ const I18N = {
     "book.phone":"Phone",
     "book.email":"Email",
     "book.thanks":"Thank you. Your request has been recorded.",
-    "book.thanks_sub":"Your email client will open with a prepared message. Please send it and we will follow up with confirmation.",
+    "book.thanks_sub":"We have received your request. We will get back to you with a confirmation shortly.",
     "f.treatment":"Treatment",
     "f.choose":"— select —",
     "f.date":"Preferred date",
@@ -2672,7 +2721,7 @@ const I18N = {
     "book.phone":"Telefon",
     "book.email":"E-Mail",
     "book.thanks":"Vielen Dank. Ihre Anfrage wurde aufgenommen.",
-    "book.thanks_sub":"Ihr E-Mail-Programm öffnet sich mit einer vorbereiteten Nachricht. Bitte senden Sie sie ab — wir bestätigen den Termin.",
+    "book.thanks_sub":"Wir haben Ihre Anfrage erhalten. Wir bestätigen Ihren Termin in Kürze.",
     "f.treatment":"Behandlung",
     "f.choose":"— wählen —",
     "f.date":"Wunschdatum",
@@ -2838,7 +2887,7 @@ const I18N = {
     "book.phone":"Telefono",
     "book.email":"E-mail",
     "book.thanks":"Grazie. La vostra richiesta è stata registrata.",
-    "book.thanks_sub":"Il vostro client di posta si aprirà con un messaggio già preparato. Vi preghiamo di inviarlo — vi confermeremo l'appuntamento.",
+    "book.thanks_sub":"Abbiamo ricevuto la vostra richiesta. Vi confermeremo l'appuntamento a breve.",
     "f.treatment":"Trattamento",
     "f.choose":"— seleziona —",
     "f.date":"Data preferita",
@@ -3030,156 +3079,227 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 document.getElementById('year').textContent = new Date().getFullYear();
 
 /* =========================================================
-   Booking form
-   --
-   Current behaviour: opens a pre-filled mailto: to the spa
-   so the request is sent to hotel@hotel-navis.hr (or whichever
-   address you set below) and ALSO creates a Google Calendar
-   "Add event" link so the spa can confirm with one click.
-   --
-   To wire up a real Google Calendar integration with
-   automatic event creation, deploy a Google Apps Script web app
-   that accepts a POST and creates the event, then replace the
-   `submitToBackend` function below. Skeleton code is in the
-   comment underneath this script.
+   Booking — živa dostupnost + slanje na Apps Script backend
+   Forma dohvaća slobodne termine iz kalendara i šalje zahtjev
+   na /exec web-app, koji kreira hold i javlja spa-u.
    ========================================================= */
 
-const SPA_EMAIL  = 'hotel@hotel-navis.hr';   // <-- change to spa-specific address when ready
-const SPA_TZ     = 'Europe/Zagreb';
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx1mMo5nhexO5ed9ALcfXIp1ddjJhGCXlsOcfJB_UTxqqZA7s7H-W5uMJ8SSN4y3H-mmQ/exec';
 
-function pad(n){return String(n).padStart(2,'0')}
-function toGCalDate(dateStr, timeStr){
-  // dateStr: YYYY-MM-DD, timeStr: HH:MM
-  if(!dateStr || !timeStr) return null;
-  const [y,m,d] = dateStr.split('-').map(Number);
-  const [hh,mm] = timeStr.split(':').map(Number);
-  const start = new Date(Date.UTC(y, m-1, d, hh, mm));
-  // Assume 60 min default duration unless treatment text contains a different minute marker
-  return start;
-}
 function extractMinutes(treatment){
   const m = (treatment||'').match(/(\d{2,3})\s?min/i);
   return m ? parseInt(m[1],10) : 60;
 }
-function formatGCalTime(d){
-  return d.getUTCFullYear()
-    + pad(d.getUTCMonth()+1)
-    + pad(d.getUTCDate()) + 'T'
-    + pad(d.getUTCHours())
-    + pad(d.getUTCMinutes())
-    + '00Z';
+
+const bookForm    = document.getElementById('bookForm');
+const formSuccess = document.getElementById('formSuccess');
+const elTreatment = document.getElementById('f-treatment');
+const elDate      = document.getElementById('f-date');
+const elTime      = document.getElementById('f-time');
+const submitBtn   = bookForm.querySelector('.submit-btn');
+
+const TIME_MSG = {
+  en:{pick:'— select treatment and date first —', load:'loading…', none:'no free times that day', choose:'— select —'},
+  hr:{pick:'— prvo odaberite tretman i datum —',  load:'učitavam…', none:'nema slobodnih termina taj dan', choose:'— odaberite —'},
+  de:{pick:'— zuerst Behandlung und Datum wählen —', load:'lädt…', none:'keine freien Termine an dem Tag', choose:'— wählen —'},
+  it:{pick:'— prima scegli trattamento e data —', load:'caricamento…', none:'nessun orario libero quel giorno', choose:'— seleziona —'}
+};
+const ERR_MSG = {
+  en:{taken:'That time was just taken. Please choose another.', net:'Could not send the request. Please try again.'},
+  hr:{taken:'Taj termin je upravo zauzet. Odaberite drugi.', net:'Slanje nije uspjelo. Pokušajte ponovo.'},
+  de:{taken:'Dieser Termin wurde gerade vergeben. Bitte wählen Sie einen anderen.', net:'Senden fehlgeschlagen. Bitte erneut versuchen.'},
+  it:{taken:'Quell\'orario è appena stato occupato. Scegline un altro.', net:'Invio non riuscito. Riprova.'}
+};
+function curLang(){ const l=document.documentElement.lang||'hr'; return TIME_MSG[l]?l:'hr'; }
+
+/* ---- granice: sutra .. +60 dana ---- */
+const pad2 = n => String(n).padStart(2,'0');
+const ymd  = d => d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+const _today = new Date(); _today.setHours(0,0,0,0);
+const MIN_D = new Date(_today); MIN_D.setDate(MIN_D.getDate()+1);
+const MAX_D = new Date(_today); MAX_D.setDate(MAX_D.getDate()+60);
+
+/* ---- kalendar i18n ---- */
+const CAL_I18N = {
+  en:{m:['January','February','March','April','May','June','July','August','September','October','November','December'], d:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], pick:'— choose a date —', need:'— select a treatment first —'},
+  hr:{m:['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'], d:['Pon','Uto','Sri','Čet','Pet','Sub','Ned'], pick:'— odaberite datum —', need:'— prvo odaberite tretman —'},
+  de:{m:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'], d:['Mo','Di','Mi','Do','Fr','Sa','So'], pick:'— Datum wählen —', need:'— zuerst Behandlung wählen —'},
+  it:{m:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'], d:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'], pick:'— scegli una data —', need:'— prima scegli un trattamento —'}
+};
+function calLang(){ const l=document.documentElement.lang||'hr'; return CAL_I18N[l]?l:'hr'; }
+
+const elDateDisp = document.getElementById('f-date-display');
+const calPop   = document.getElementById('calPop');
+const calTitle = document.getElementById('calTitle');
+const calDow   = document.getElementById('calDow');
+const calGrid  = document.getElementById('calGrid');
+const calPrev  = document.getElementById('calPrev');
+const calNext  = document.getElementById('calNext');
+
+let viewY = MIN_D.getFullYear();
+let viewM = MIN_D.getMonth();
+let selDate = '';
+let curDur  = 0;
+let availCache = {};
+
+function dispFmt(s){ const p=s.split('-'); return p[2]+'.'+p[1]+'.'+p[0]+'.'; }
+function inBounds(d){ return d>=MIN_D && d<=MAX_D; }
+function openCal(){ if(elDateDisp.disabled) return; calPop.classList.add('is-open'); loadMonth(); }
+function closeCal(){ calPop.classList.remove('is-open'); }
+
+async function loadMonth(){
+  const L=CAL_I18N[calLang()];
+  calTitle.textContent=L.m[viewM]+' '+viewY;
+  calDow.innerHTML=L.d.map(x=>'<span>'+x+'</span>').join('');
+  calPrev.disabled=(new Date(viewY,viewM,1)<=new Date(MIN_D.getFullYear(),MIN_D.getMonth(),1));
+  calNext.disabled=(new Date(viewY,viewM,1)>=new Date(MAX_D.getFullYear(),MAX_D.getMonth(),1));
+  const firstShown=new Date(viewY,viewM,1), lastShown=new Date(viewY,viewM+1,0);
+  const from=firstShown<MIN_D?MIN_D:firstShown;
+  const to=lastShown>MAX_D?MAX_D:lastShown;
+  const key=curDur+'-'+viewY+'-'+viewM;
+  if(from>to){ renderGrid({}); return; }
+  if(availCache[key]!==undefined){ renderGrid(availCache[key]); return; }
+  calGrid.classList.add('cal-loading');
+  renderGrid(null);
+  try{
+    const res=await fetch(WEBAPP_URL+'?action=month&from='+ymd(from)+'&to='+ymd(to)+'&duration='+curDur);
+    const data=await res.json();
+    availCache[key]=(data.ok&&data.days)?data.days:{};
+    renderGrid(availCache[key]);
+  }catch(err){
+    availCache[key]=undefined;
+    renderGrid(null,true);
+  }finally{
+    calGrid.classList.remove('cal-loading');
+  }
 }
 
-const bookForm = document.getElementById('bookForm');
-const formSuccess = document.getElementById('formSuccess');
-
-bookForm.addEventListener('submit', (ev)=>{
-  ev.preventDefault();
-  const data = new FormData(bookForm);
-  const treatment = data.get('treatment');
-  const date      = data.get('date');
-  const time      = data.get('time');
-  const name      = data.get('name');
-  const phone     = data.get('phone');
-  const email     = data.get('email');
-  const note      = data.get('note') || '';
-
-  if(!treatment || !date || !time || !name || !phone || !email){
-    bookForm.reportValidity();
-    return;
+function renderGrid(days, openAll){
+  const first=new Date(viewY,viewM,1);
+  let startDow=first.getDay(); startDow=(startDow===0)?6:startDow-1;
+  const daysInM=new Date(viewY,viewM+1,0).getDate();
+  let html='';
+  for(let i=0;i<startDow;i++) html+='<span class="cal-day is-empty"></span>';
+  for(let d=1; d<=daysInM; d++){
+    const dt=new Date(viewY,viewM,d), key=ymd(dt), inB=inBounds(dt);
+    let on;
+    if(!inB) on=false;
+    else if(openAll) on=true;
+    else if(days===null) on=false;
+    else on=(days[key]===true);
+    const cls=['cal-day'];
+    if(!on) cls.push('is-disabled');
+    if(key===selDate) cls.push('is-selected');
+    html+='<button type="button" class="'+cls.join(' ')+'"'+(on?' data-d="'+key+'"':' disabled')+'>'+d+'</button>';
   }
+  calGrid.innerHTML=html;
+}
 
-  // Build email body (the spa receives a clear, formatted request)
-  const lang = document.documentElement.lang || 'hr';
-  const T = I18N[lang] || I18N.hr;
+function selectDay(s){
+  selDate=s; elDate.value=s; elDateDisp.value=dispFmt(s);
+  closeCal(); refreshSlots();
+}
 
-  const subject = `Senses Spa · ${treatment} · ${date} ${time} · ${name}`;
-  const body =
-`SENSES SPA — ZAHTJEV ZA REZERVACIJU
-─────────────────────────────────────
-
-Tretman:   ${treatment}
-Datum:     ${date}
-Vrijeme:   ${time}
-
-Gost:      ${name}
-Telefon:   ${phone}
-E-pošta:   ${email}
-
-Napomena:
-${note || '—'}
-
-─────────────────────────────────────
-Zahtjev poslan putem senses-spa.hr`;
-
-  // Google Calendar quick-add link (one-click event creation for the spa owner)
-  const start = toGCalDate(date, time);
-  let gcalUrl = '';
-  if(start){
-    const end = new Date(start.getTime() + extractMinutes(treatment)*60000);
-    const params = new URLSearchParams({
-      action: 'TEMPLATE',
-      text: `Senses · ${treatment} · ${name}`,
-      dates: `${formatGCalTime(start)}/${formatGCalTime(end)}`,
-      details: body,
-      location: 'Hotel Navis, Ičići, Opatija',
-      ctz: SPA_TZ
-    });
-    gcalUrl = 'https://calendar.google.com/calendar/render?' + params.toString();
-  }
-
-  // Open the mailto so the request is sent to the spa
-  const mailtoUrl = `mailto:${SPA_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailtoUrl;
-
-  // Show success state
-  formSuccess.classList.add('is-active');
-  if(gcalUrl){
-    const linkText = (lang==='en') ? 'Or add directly to Google Calendar →'
-                  : (lang==='de') ? 'Oder direkt im Google Kalender hinzufügen →'
-                  : (lang==='it') ? 'Oppure aggiungilo direttamente a Google Calendar →'
-                  : 'Ili dodaj direktno u Google Kalendar →';
-    formSuccess.querySelector('small').innerHTML =
-      (T['book.thanks_sub'] || '') +
-      `<br><br><a href="${gcalUrl}" target="_blank" rel="noopener">${linkText}</a>`;
-  }
-  formSuccess.scrollIntoView({behavior:'smooth', block:'center'});
-
-  // Soft reset (keep success visible for owner to see)
-  setTimeout(()=>bookForm.reset(), 200);
+calGrid.addEventListener('click', e=>{
+  const b=e.target.closest('.cal-day'); if(!b) return;
+  const d=b.getAttribute('data-d'); if(d) selectDay(d);
 });
+calPrev.addEventListener('click', ()=>{ if(calPrev.disabled) return; viewM--; if(viewM<0){viewM=11;viewY--;} loadMonth(); });
+calNext.addEventListener('click', ()=>{ if(calNext.disabled) return; viewM++; if(viewM>11){viewM=0;viewY++;} loadMonth(); });
+elDateDisp.addEventListener('click', ()=>{ calPop.classList.contains('is-open')?closeCal():openCal(); });
+document.addEventListener('click', e=>{ if(!e.target.closest('.date-wrap')) closeCal(); });
 
-/* =========================================================
-   OPTIONAL — Real Google Calendar integration via Apps Script
-   ---------------------------------------------------------
-   1) In Google Apps Script (script.new), paste:
+function setTimePlaceholder(key){
+  elTime.innerHTML='<option value="">'+TIME_MSG[curLang()][key]+'</option>';
+  elTime.disabled=true;
+}
+setTimePlaceholder('pick');
 
-      function doPost(e){
-        const d = JSON.parse(e.postData.contents);
-        const cal = CalendarApp.getCalendarById('YOUR_CALENDAR_ID@group.calendar.google.com');
-        const start = new Date(d.startISO);
-        const end   = new Date(d.endISO);
-        cal.createEvent('Senses · ' + d.treatment + ' · ' + d.name, start, end, {
-          description: d.body,
-          location: 'Hotel Navis, Ičići, Opatija',
-          guests: d.email
-        });
-        return ContentService.createTextOutput(JSON.stringify({ok:true}))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
+async function refreshSlots(){
+  const treatment=elTreatment.value, date=elDate.value;
+  if(!treatment||!date){ setTimePlaceholder('pick'); return; }
+  setTimePlaceholder('load');
+  const dur=extractMinutes(treatment);
+  try{
+    const res=await fetch(WEBAPP_URL+'?action=availability&date='+encodeURIComponent(date)+'&duration='+dur);
+    const data=await res.json();
+    const m=TIME_MSG[curLang()];
+    if(data.ok && data.slots && data.slots.length){
+      elTime.innerHTML='<option value="">'+m.choose+'</option>'+data.slots.map(s=>'<option>'+s+'</option>').join('');
+      elTime.disabled=false;
+    } else {
+      setTimePlaceholder('none');
+    }
+  }catch(err){
+    setTimePlaceholder('none');
+  }
+}
 
-   2) Deploy as Web App (anyone can access), copy the /exec URL.
-   3) Replace the mailto behaviour above with:
+function onTreatmentChange(){
+  curDur=extractMinutes(elTreatment.value);
+  selDate=''; elDate.value=''; elDateDisp.value=''; availCache={};
+  if(elTreatment.value){
+    elDateDisp.disabled=false;
+    elDateDisp.placeholder=CAL_I18N[calLang()].pick;
+    viewY=MIN_D.getFullYear(); viewM=MIN_D.getMonth();
+  } else {
+    elDateDisp.disabled=true;
+    elDateDisp.placeholder=CAL_I18N[calLang()].need;
+  }
+  closeCal();
+  setTimePlaceholder('pick');
+}
+elTreatment.addEventListener('change', onTreatmentChange);
+elDateDisp.placeholder=CAL_I18N[calLang()].need;
 
-      fetch('PASTE_URL_HERE', {
-        method:'POST',
-        body: JSON.stringify({
-          treatment, name, email, phone, note, body,
-          startISO: start.toISOString(),
-          endISO:   end.toISOString()
-        })
-      });
-   ========================================================= */
+function showError(msg){
+  let e=document.getElementById('f-error');
+  if(!e){
+    e=document.createElement('div');
+    e.id='f-error';
+    e.style.cssText='color:#b00020;font-size:14px;margin:0 0 10px;width:100%';
+    bookForm.querySelector('.form-foot').prepend(e);
+  }
+  e.textContent=msg;
+}
+function clearError(){ const e=document.getElementById('f-error'); if(e) e.textContent=''; }
+
+bookForm.addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  clearError();
+  const data=new FormData(bookForm);
+  const payload={
+    tretman: data.get('treatment'),
+    trajanjeMin: extractMinutes(data.get('treatment')),
+    datum: data.get('date'),
+    vrijeme: data.get('time'),
+    ime: data.get('name'),
+    telefon: data.get('phone'),
+    email: data.get('email'),
+    napomena: data.get('note')||'',
+    jezik: document.documentElement.lang||'hr'
+  };
+  if(!payload.tretman||!payload.datum||!payload.vrijeme||!payload.ime||!payload.telefon||!payload.email){
+    bookForm.reportValidity(); return;
+  }
+  submitBtn.disabled=true;
+  try{
+    const res=await fetch(WEBAPP_URL,{ method:'POST', body:JSON.stringify(payload) });
+    const out=await res.json();
+    if(out.ok){
+      formSuccess.classList.add('is-active');
+      formSuccess.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>{ bookForm.reset(); onTreatmentChange(); }, 200);
+    } else {
+      showError(ERR_MSG[curLang()].taken);
+      refreshSlots();
+    }
+  }catch(err){
+    showError(ERR_MSG[curLang()].net);
+  }finally{
+    submitBtn.disabled=false;
+  }
+});
 </script>
 
 </body>
