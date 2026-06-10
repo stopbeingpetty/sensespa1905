@@ -1368,7 +1368,17 @@ footer{
   text-transform:uppercase;color:var(--bronze);padding:.2rem 0;
 }
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;transition:opacity .2s var(--ease)}
-.cal-grid.cal-loading{opacity:.4;pointer-events:none}
+.cal-grid-wrap{position:relative;min-height:200px}
+.cal-load{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.55rem;
+  background:rgba(251,247,238,.82);backdrop-filter:blur(1.5px);border-radius:4px;
+}
+.cal-grid-wrap.is-loading .cal-load{display:flex}
+.cal-spin{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--bronze);animation:calSpin .75s linear infinite}
+.cal-load-txt{font-family:var(--f-label);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--bronze)}
+@keyframes calSpin{to{transform:rotate(360deg)}}
+.cal-day.is-pending{color:var(--mist);pointer-events:none;animation:calPulse 1.15s ease-in-out infinite}
+@keyframes calPulse{0%,100%{opacity:.4}50%{opacity:.85}}
 .cal-day{
   aspect-ratio:1/1;border:0;background:transparent;border-radius:50%;
   font-family:var(--f-body);font-size:.85rem;color:var(--ink);cursor:pointer;
@@ -2102,7 +2112,13 @@ footer{
                     <button type="button" class="cal-nav" id="calNext" aria-label="sljedeći mjesec">›</button>
                   </div>
                   <div class="cal-dow" id="calDow"></div>
-                  <div class="cal-grid" id="calGrid"></div>
+                  <div class="cal-grid-wrap" id="calGridWrap">
+                    <div class="cal-grid" id="calGrid"></div>
+                    <div class="cal-load" aria-hidden="true">
+                      <span class="cal-spin"></span>
+                      <span class="cal-load-txt" id="calLoadTxt">Provjeravam dostupnost…</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3121,10 +3137,10 @@ const MAX_D = new Date(_today); MAX_D.setDate(MAX_D.getDate()+60);
 
 /* ---- kalendar i18n ---- */
 const CAL_I18N = {
-  en:{m:['January','February','March','April','May','June','July','August','September','October','November','December'], d:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], pick:'— choose a date —', need:'— select a treatment first —'},
-  hr:{m:['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'], d:['Pon','Uto','Sri','Čet','Pet','Sub','Ned'], pick:'— odaberite datum —', need:'— prvo odaberite tretman —'},
-  de:{m:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'], d:['Mo','Di','Mi','Do','Fr','Sa','So'], pick:'— Datum wählen —', need:'— zuerst Behandlung wählen —'},
-  it:{m:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'], d:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'], pick:'— scegli una data —', need:'— prima scegli un trattamento —'}
+  en:{m:['January','February','March','April','May','June','July','August','September','October','November','December'], d:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], pick:'— choose a date —', need:'— select a treatment first —', checking:'Checking availability…'},
+  hr:{m:['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'], d:['Pon','Uto','Sri','Čet','Pet','Sub','Ned'], pick:'— odaberite datum —', need:'— prvo odaberite tretman —', checking:'Provjeravam dostupnost…'},
+  de:{m:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'], d:['Mo','Di','Mi','Do','Fr','Sa','So'], pick:'— Datum wählen —', need:'— zuerst Behandlung wählen —', checking:'Verfügbarkeit wird geprüft…'},
+  it:{m:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'], d:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'], pick:'— scegli una data —', need:'— prima scegli un trattamento —', checking:'Verifico la disponibilità…'}
 };
 function calLang(){ const l=document.documentElement.lang||'hr'; return CAL_I18N[l]?l:'hr'; }
 
@@ -3135,6 +3151,8 @@ const calDow   = document.getElementById('calDow');
 const calGrid  = document.getElementById('calGrid');
 const calPrev  = document.getElementById('calPrev');
 const calNext  = document.getElementById('calNext');
+const calGridWrap = document.getElementById('calGridWrap');
+const calLoadTxt  = document.getElementById('calLoadTxt');
 
 let viewY = MIN_D.getFullYear();
 let viewM = MIN_D.getMonth();
@@ -3159,8 +3177,9 @@ async function loadMonth(){
   const key=curDur+'-'+viewY+'-'+viewM;
   if(from>to){ renderGrid({}); return; }
   if(availCache[key]!==undefined){ renderGrid(availCache[key]); return; }
-  calGrid.classList.add('cal-loading');
-  renderGrid(null);
+  calLoadTxt.textContent=CAL_I18N[calLang()].checking;
+  calGridWrap.classList.add('is-loading');
+  renderGrid(null,'pending');
   try{
     const res=await fetch(WEBAPP_URL+'?action=month&from='+ymd(from)+'&to='+ymd(to)+'&duration='+curDur);
     const data=await res.json();
@@ -3168,13 +3187,13 @@ async function loadMonth(){
     renderGrid(availCache[key]);
   }catch(err){
     availCache[key]=undefined;
-    renderGrid(null,true);
+    renderGrid(null,'open');
   }finally{
-    calGrid.classList.remove('cal-loading');
+    calGridWrap.classList.remove('is-loading');
   }
 }
 
-function renderGrid(days, openAll){
+function renderGrid(days, mode){
   const first=new Date(viewY,viewM,1);
   let startDow=first.getDay(); startDow=(startDow===0)?6:startDow-1;
   const daysInM=new Date(viewY,viewM+1,0).getDate();
@@ -3182,15 +3201,14 @@ function renderGrid(days, openAll){
   for(let i=0;i<startDow;i++) html+='<span class="cal-day is-empty"></span>';
   for(let d=1; d<=daysInM; d++){
     const dt=new Date(viewY,viewM,d), key=ymd(dt), inB=inBounds(dt);
-    let on;
-    if(!inB) on=false;
-    else if(openAll) on=true;
-    else if(days===null) on=false;
-    else on=(days[key]===true);
     const cls=['cal-day'];
-    if(!on) cls.push('is-disabled');
+    let clickable=false;
+    if(!inB){ cls.push('is-disabled'); }
+    else if(mode==='pending'){ cls.push('is-pending'); }
+    else if(mode==='open'){ clickable=true; }
+    else { clickable=!!(days&&days[key]===true); if(!clickable) cls.push('is-disabled'); }
     if(key===selDate) cls.push('is-selected');
-    html+='<button type="button" class="'+cls.join(' ')+'"'+(on?' data-d="'+key+'"':' disabled')+'>'+d+'</button>';
+    html+='<button type="button" class="'+cls.join(' ')+'"'+(clickable?' data-d="'+key+'"':' disabled')+'>'+d+'</button>';
   }
   calGrid.innerHTML=html;
 }
@@ -3242,6 +3260,7 @@ function onTreatmentChange(){
     elDateDisp.disabled=false;
     elDateDisp.placeholder=CAL_I18N[calLang()].pick;
     viewY=MIN_D.getFullYear(); viewM=MIN_D.getMonth();
+    prefetchMonth();
   } else {
     elDateDisp.disabled=true;
     elDateDisp.placeholder=CAL_I18N[calLang()].need;
@@ -3250,6 +3269,27 @@ function onTreatmentChange(){
   setTimePlaceholder('pick');
 }
 elTreatment.addEventListener('change', onTreatmentChange);
+
+/* ---- warm the backend early so the picker feels instant ---- */
+function prefetchMonth(){
+  if(!elTreatment.value) return;
+  const firstShown=new Date(viewY,viewM,1), lastShown=new Date(viewY,viewM+1,0);
+  const from=firstShown<MIN_D?MIN_D:firstShown;
+  const to=lastShown>MAX_D?MAX_D:lastShown;
+  if(from>to) return;
+  const key=curDur+'-'+viewY+'-'+viewM;
+  if(availCache[key]!==undefined) return;
+  fetch(WEBAPP_URL+'?action=month&from='+ymd(from)+'&to='+ymd(to)+'&duration='+curDur)
+    .then(r=>r.json())
+    .then(data=>{ availCache[key]=(data.ok&&data.days)?data.days:{}; if(calPop.classList.contains('is-open')) loadMonth(); })
+    .catch(()=>{});
+}
+let _warmed=false;
+function warmBackend(){
+  if(_warmed) return; _warmed=true;
+  fetch(WEBAPP_URL+'?action=availability&date='+ymd(MIN_D)+'&duration=60').catch(()=>{});
+}
+elTreatment.addEventListener('focus', warmBackend);
 elDateDisp.placeholder=CAL_I18N[calLang()].need;
 
 function showError(msg){
