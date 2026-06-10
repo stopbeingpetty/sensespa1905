@@ -3290,6 +3290,9 @@ function warmBackend(){
   fetch(WEBAPP_URL+'?action=availability&date='+ymd(MIN_D)+'&duration=60').catch(()=>{});
 }
 elTreatment.addEventListener('focus', warmBackend);
+['scroll','pointerdown','touchstart','keydown'].forEach(ev=>
+  window.addEventListener(ev, warmBackend, {once:true, passive:true})
+);
 elDateDisp.placeholder=CAL_I18N[calLang()].need;
 
 function showError(msg){
