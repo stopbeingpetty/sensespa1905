@@ -3047,12 +3047,19 @@ document.querySelectorAll('.lang button').forEach(b=>{
   b.addEventListener('click', ()=>setLang(b.getAttribute('data-lang')));
 });
 
-// Init lang
+// Init lang — URL ?lang= (or #hr) takes precedence, then saved preference, then default
 (function(){
   let lang = 'en';
   try{
     const saved = localStorage.getItem('senses-lang');
     if(saved && I18N[saved]) lang = saved;
+  }catch(e){}
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const q = (params.get('lang') || '').toLowerCase();
+    const h = (window.location.hash || '').replace('#','').toLowerCase();
+    const urlLang = q || h;
+    if(urlLang && I18N[urlLang]) lang = urlLang; // deep-link overrides saved
   }catch(e){}
   setLang(lang);
 })();
